@@ -1,3 +1,5 @@
+from django.db import models
+
 import sys
 from django.utils.timezone import now
 try:
@@ -105,6 +107,24 @@ class Enrollment(models.Model):
     # Foreign key to lesson
     # question text
     # question grade/mark
+class Question(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.TextField()
+    grade_point = models.FloatField()
+    difficulty_level = models.IntegerField()
+    time_limit = models.IntegerField()
+
+    def __str__(self):
+        return self.question_text
+
+    def is_get_score(self, selected_choice_ids):
+        """
+        Evaluates if the question was answered correctly based on the selected choice IDs.
+        Returns True if all selected choices are correct, False otherwise.
+        """
+        correct_choices = self.choice_set.filter(is_correct=True).values_list('id', flat=True)
+        selected_choices = set(selected_choice_ids)
+        return correct_choices == selected_choices
 
     # <HINT> A sample model method to calculate if learner get the score of the question
     #def is_get_score(self, selected_ids):
@@ -123,12 +143,22 @@ class Enrollment(models.Model):
     # Indicate if this choice of the question is a correct one or not
     # Other fields and methods you would like to design
 # class Choice(models.Model):
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    choice_text = models.TextField()
+    is_correct = models.BooleanField(default=False)
+    explanation = models.TextField()
+    feedback = models.TextField()
 
-# <HINT> The submission model
-# One enrollment could have multiple submission
-# One submission could have multiple choices
-# One choice could belong to multiple submissions
-#class Submission(models.Model):
-#    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
-#    choices = models.ManyToManyField(Choice)
-#    Other fields and methods you would like to design
+    def __str__(self):
+        return self.choice_text
+
+
+
+class Submission(models.Model):
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
+    choices = models.ManyToManyField(Choice)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Submission {self.id} - Enrollment {self.enrollment.id}"
